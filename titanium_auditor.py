@@ -87,9 +87,18 @@ def check_dnsbl(ip):
 
     for bl in DNSBL_PROVIDERS:
         try:
-            resolver.resolve(f"{rev_ip}.{bl}", "A")
-            flags.append(bl)
-            penalty += 25 
+            answers = resolver.resolve(f"{rev_ip}.{bl}", "A")
+            for rdata in answers:
+                response_ip = str(rdata)
+                # SE FOR 127.255.255.x, é a Spamhaus dizendo que o RENDER está bloqueado, não o PROXY.
+                # Nós ignoramos esse erro.
+                if response_ip.startswith("127.255.255"):
+                    continue
+                
+                # Se cair aqui, é um positivo real (IP listado como Spam/Proxy)
+                flags.append(bl)
+                penalty += 25 
+                break 
         except:
             continue
     return penalty, flags
@@ -309,4 +318,5 @@ def main():
         print_log("ERROR", f"Save failed: {e}")
 
 if __name__ == "__main__":
+
     main()
